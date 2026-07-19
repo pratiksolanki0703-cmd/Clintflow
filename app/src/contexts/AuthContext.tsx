@@ -72,22 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error }
 
-    if (data.user) {
-      const { error: profileError } = await supabase
+    if (data.user && businessName) {
+      const { error: updateError } = await supabase
         .from('users')
-        .insert({
-          id: data.user.id,
-          email,
-          username,
-          business_name: businessName || null,
-          plan_key: 'free',
-          ai_credits_remaining: 5,
-          ai_credits_topup: 0,
-        })
+        .update({ business_name: businessName })
+        .eq('id', data.user.id)
 
-      if (profileError) {
-        console.error('Error creating user profile:', profileError)
-        return { error: profileError }
+      if (updateError) {
+        console.error('Error updating business name:', updateError)
       }
     }
 
