@@ -1,479 +1,286 @@
-# Frontend Design Bible
-
+# 01_PRODUCT_RULES.md
 Version: 1.0
-Document: 01_PRODUCT_RULES.md
 Status: Frozen
-Priority: Critical
 
 ---
 
-# PURPOSE
+# Product Overview
 
-This document defines the complete product philosophy, business rules and UX principles.
+ClientFlow is a SaaS platform for freelancers to professionally manage clients and projects.
 
-This document MUST NOT generate UI directly.
+The platform is NOT a marketplace.
 
-This document exists so the AI understands the product before modifying the frontend.
+The platform NEVER finds clients.
 
-All future frontend decisions must follow this document.
+The platform NEVER receives payments.
 
----
+The platform NEVER takes commission.
 
-# PRODUCT NAME
-
-Temporary Name:
-
-ClientFlow
-
-The product name may change in future.
-
-Never hardcode the product name.
-
-Store it in a configuration file.
+The platform only helps freelancers organize work and share project progress with clients.
 
 ---
 
-# PRODUCT TYPE
-
-Freelancer SaaS
-
-NOT Marketplace
-
-NOT CRM for Sales
-
-NOT ERP
-
-NOT Accounting Software
-
-NOT Payment Gateway
-
-NOT Fiverr
-
-NOT Upwork
-
-NOT LinkedIn
-
----
-
-# PRODUCT MISSION
-
-The platform helps freelancers manage clients professionally.
-
-The platform DOES NOT help users find clients.
-
-The platform DOES NOT process payments.
-
-The platform DOES NOT take commission.
-
-The platform simply organizes the complete project journey.
-
----
-
-# CORE PRINCIPLE
-
-This product should feel like:
-
-Linear
-
-Notion
-
-Stripe Dashboard
-
-Vercel
-
-GitHub
-
-Simple
-
-Clean
-
-Fast
-
-Professional
-
-Minimal
-
-Every screen should reduce stress.
-
-Never overwhelm users.
-
----
-
-# TARGET USERS
-
-Primary Users
+# Primary Users
 
 - Freelance Designers
 - Web Developers
 - App Developers
 - Video Editors
-- Motion Designers
 - Writers
-- Consultants
 - Marketing Freelancers
-
-Secondary Users
-
-Small Agencies
+- Small Agencies
 
 ---
 
-# TARGET EXPERIENCE
+# Core Philosophy
 
-A new freelancer should understand the product in less than 2 minutes.
+Every feature must save freelancer time.
 
-No training required.
+Every screen must feel simple.
 
-No documentation required.
+Every action must feel obvious.
 
-Everything should feel obvious.
+Never make users think.
 
----
+Professional > Fancy.
 
-# PRODUCT PHILOSOPHY
-
-Rule 1
-
-Never make the user think.
-
-Rule 2
-
-One primary action per screen.
-
-Rule 3
-
-Everything important should be visible.
-
-Rule 4
-
-Never hide essential information.
-
-Rule 5
-
-Never create unnecessary clicks.
-
-Rule 6
-
-Keep UI clean.
-
-Rule 7
-
-Professional over fancy.
-
-Rule 8
-
-Speed over decoration.
+Fast > Beautiful.
 
 ---
 
-# WHAT THIS PRODUCT MANAGES
+# Product Responsibilities
 
-Clients
+The platform manages:
 
-Projects
+- Clients
+- Projects
+- Milestones
+- Timeline
+- Proposals
+- Contracts
+- Invoices
+- Payment Status
+- Notifications
+- AI Writing
+- Files
+- Business Profile
 
-Proposals
+The platform does NOT manage:
 
-Contracts
-
-Invoices
-
-Project Timeline
-
-Milestones
-
-Payment Status
-
-Notifications
-
-Emails
-
-AI Assistance
-
-Business Profile
-
----
-
-# WHAT THIS PRODUCT NEVER MANAGES
-
-Finding Clients
-
-Receiving Payments
-
-Holding Money
-
-Escrow
-
-Commission
-
-Freelancer Hiring
-
-Job Marketplace
-
-Live Chat Platform
-
-Social Media
-
-Accounting
-
-Taxes
+- Client acquisition
+- Payments
+- Escrow
+- Accounting
+- Taxes
+- Team chat
+- Marketplace
 
 ---
 
-# PAYMENT PHILOSOPHY
+# User Roles
 
-The platform is NOT responsible for payments.
+## Freelancer
 
-Payments happen outside the platform.
+Can:
 
-The platform only displays payment information.
+- Create Clients
+- Create Projects
+- Create Proposals
+- Generate Contracts
+- Generate Invoices
+- Update Timeline
+- Update Milestones
+- Update Payment Status
+- Upload Files
+- Send Emails
+- Use AI
+- Manage Settings
 
-Examples
-
-UPI
-
-Bank Transfer
-
-PayPal
-
-Wise
-
-Stripe
-
-Razorpay
-
-Payoneer
-
-Custom Payment Method
+Has complete control.
 
 ---
 
-# IMPORTANT PAYMENT RULE
+## Client
 
-Never say
+Can only:
 
-"Payment Successful"
+- View Project
+- View Timeline
+- Accept Proposal
+- Reject Proposal
+- Accept Contract
+- View Invoice
+- View Payment Methods
+- Download Shared Files
 
-Instead use
-
-"Marked as Paid by Freelancer"
-
-Reason
-
-The platform never verifies money.
-
-The freelancer manually updates payment status.
-
----
-
-# PAYMENT STATUS
-
-Pending
-
-Partially Paid
-
-Fully Paid
-
-Overdue
-
-Cancelled
-
-Only freelancers can update payment status.
-
-Clients cannot modify payment status.
+Client can NEVER edit project.
 
 ---
 
-# CLIENT RESPONSIBILITY
+# Payment Rules
 
-Client can
+Payments happen outside ClientFlow.
 
-View
+ClientFlow only displays payment information.
 
-Accept Proposal
+Freelancer manually updates payment status.
 
-Reject Proposal
+Never show:
 
-Accept Contract
+Payment Successful
 
-View Timeline
+Instead show:
 
-View Invoice
+Marked as Paid
 
-View Payment Information
+Marked as Partially Paid
 
-Download Files
-
-Nothing else.
-
-Clients never edit project data.
+Marked as Unpaid
 
 ---
 
-# FREELANCER RESPONSIBILITY
+# Payment Methods
 
-Create Project
+Freelancer chooses which methods to display.
 
-Edit Project
+Examples:
 
-Delete Project
+- UPI
+- Bank Transfer
+- PayPal
+- Wise
+- Stripe Payment Link
+- Razorpay Payment Link
+- Custom Link
 
-Create Proposal
-
-Generate Contract
-
-Generate Invoice
-
-Manage Timeline
-
-Manage Milestones
-
-Update Payment Status
-
-Send Emails
-
-Manage AI
-
-Manage Client
-
-Manage Business Profile
-
-Everything important is controlled by the freelancer.
+The platform never verifies transactions.
 
 ---
 
-# SECURITY PHILOSOPHY
+# AI Rules
 
-Every project has a unique secure URL.
+AI is an assistant.
 
-Never use sequential IDs.
+AI never makes decisions.
 
-Example
+AI generated content must always be editable.
 
-Wrong
+AI never auto-sends emails.
 
-/project/1
+AI never auto-updates project data.
 
-Correct
-
-/project/AX82KD92P
-
-Client links must be impossible to guess.
+Every AI action consumes AI credits.
 
 ---
 
-# AI PHILOSOPHY
+# Project Lifecycle
 
-AI assists.
+Draft
 
-AI never decides.
-
-Every AI output must be reviewed.
-
-Every AI output must be editable.
-
-AI never auto sends.
-
-AI never auto saves.
-
-AI never changes project data without confirmation.
-
----
-
-# AI CREDIT RULE
-
-Every AI action consumes credits.
-
-Examples
-
-Proposal
-
-Contract
-
-Milestones
-
-Reminder
-
-Invoice Description
-
-Pricing Suggestion
-
-Credits must always be visible.
-
-The user should never wonder
-
-"How many AI credits are left?"
-
----
-
-# PRODUCT FEELING
-
-The application should feel
-
-Fast
-
-Responsive
-
-Modern
-
-Trustworthy
-
-Professional
-
-Every interaction should provide immediate feedback.
-
-No lag.
-
-No confusing animations.
-
-No unnecessary popups.
-
----
-
-# SUCCESS MESSAGE STYLE
-
-Correct
-
-Project Created
+↓
 
 Proposal Sent
 
-Payment Status Updated
+↓
+
+Proposal Accepted
+
+↓
+
+Contract Signed
+
+↓
+
+Advance Payment
+
+↓
+
+In Progress
+
+↓
+
+Revision
+
+↓
+
+Final Delivery
+
+↓
+
+Final Payment
+
+↓
+
+Completed
+
+Alternative:
+
+Cancelled
+
+On Hold
+
+Archived
+
+---
+
+# Milestones
+
+Milestones can be created using:
+
+- Default Templates
+- AI Suggestion
+- Personal Templates
+- Manual
+
+Milestone Status:
+
+- Pending
+- In Progress
+- Completed
+- Blocked
+
+Freelancer updates milestone status.
+
+Clients only view progress.
+
+---
+
+# Notifications
+
+Only useful notifications.
+
+Examples:
+
+Proposal Accepted
+
+Contract Signed
+
+Payment Reminder
 
 Milestone Completed
 
-Wrong
+Deadline Tomorrow
 
-Awesome!!
-
-Yay!!
-
-Congratulations!!
-
-Avoid childish language.
+Never spam users.
 
 ---
 
-# ERROR MESSAGE STYLE
+# Email Rules
 
-Simple.
+Emails are sent only when freelancer decides.
 
-Human.
+Exception:
 
-Professional.
-
-Never expose technical errors.
-
-Wrong
-
-Supabase RPC failed
-
-Correct
-
-Unable to save changes.
-
-Please try again.
+Scheduled reminders.
 
 ---
 
-END OF PART 1
+# Security Rules
+
+Every Client Portal uses a secure unique URL.
+
+Never use sequential IDs.
+
+Wrong:
+
+/project
