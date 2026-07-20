@@ -138,11 +138,12 @@ export function CreateAccount() {
       }
     }
 
-    // Sign out, then delete the temp users row so username is free until OTP verify
-    await signOut()
+    // Delete the temp users row FIRST (while still authenticated), then sign out
+    // This frees the username so it's not squat-able
     if (signupUserId) {
       await supabase.from('users').delete().eq('id', signupUserId)
     }
+    await signOut()
     
     // Send OTP and redirect to verification
     await sendSignupOtp(data.email)
