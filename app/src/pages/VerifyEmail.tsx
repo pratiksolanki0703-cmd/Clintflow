@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { Button, Card } from '../components/ui'
 import { MailCheck } from 'lucide-react'
 
@@ -8,7 +9,7 @@ export function VerifyEmail() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const email = searchParams.get('email') || ''
-  const { verifyOtp, sendSignupOtp } = useAuth()
+  const { verifyOtp, sendSignupOtp, refreshUser } = useAuth()
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''))
   const [error, setError] = useState('')
@@ -82,7 +83,54 @@ export function VerifyEmail() {
       return
     }
 
-    // Email verified! Redirect to Dashboard
+    // ── Resolve user info ────────────────────────────────────
+    // Priority: sessionStorage (fresh signup) → auth user metadata (tab closed fallback)
+    let userId = sessionStorage.getItem('cf_pending_id')
+    let userName = sessionStorage.getItem('cf_pending_username')
+    let bizName = sessionStorage.getItem('cf_pending_biz')
+
+    if (!userId || !userName) {
+      // Tab was closed after signup — recover from auth metadata
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (authUser) {
+        userId = authUser.id
+        userName = authUser.user_metadata?.username ?? authUser.email?.split('@')[0]
+      }
+    }
+
+    // ── Create the users row ─────────────────────────────────
+    if (userId && userName) {
+      let insertError: any = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const result = await supabase.from('users').insert({
+          id: userId,
+          email: email,
+          username: userName,
+          business_name: bizName || null,
+          plan_key: 'free',
+          ai_credits_remaining: 5,
+        })
+        insertError = result.error
+        if (!insertError) break
+        await new Promise(r => setTimeout(r, 1000))
+      }
+
+      if (insertError) {
+        setError('Something went wrong setting up your account. Please try signing up again.')
+        setLoading(false)
+        // Don't clear sessionStorage — they may want to retry
+        return
+      }
+
+      // Clean up on success
+      sessionStorage.removeItem('cf_pending_id')
+      sessionStorage.removeItem('cf_pending_email')
+      sessionStorage.removeItem('cf_pending_username')
+      sessionStorage.removeItem('cf_pending_biz')
+    }
+
+    // Refresh user state — AuthContext will now find the users row
+    await refreshUser()
     setSuccess(true)
     setTimeout(() => navigate('/dashboard', { replace: true }), 1500)
   }

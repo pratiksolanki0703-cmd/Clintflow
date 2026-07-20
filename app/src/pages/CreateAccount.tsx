@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { Button, Input, Card } from '../components/ui'
 import { useUsernameCheck } from '../hooks/useQueries'
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2, XCircle, Loader2, ShieldCheck } from 'lucide-react'
@@ -126,18 +127,25 @@ export function CreateAccount() {
       return
     }
 
-    // Account created! Now sign out (auto-logged-in by Supabase) and send verification OTP
-    await signOut()
-    
-    const { error: otpError } = await sendSignupOtp(data.email)
-    if (otpError) {
-      // OTP send failed but account exists — let user try to verify manually
-      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
-      setAuthLoading(false)
-      return
+    // Store pending user info for after OTP verification
+    const signupUserId = res.user?.id
+    if (signupUserId) {
+      sessionStorage.setItem('cf_pending_id', signupUserId)
+      sessionStorage.setItem('cf_pending_email', data.email)
+      sessionStorage.setItem('cf_pending_username', data.username)
+      if (data.businessName) {
+        sessionStorage.setItem('cf_pending_biz', data.businessName)
+      }
     }
 
-    // Redirect to email verification page
+    // Sign out, then delete the temp users row so username is free until OTP verify
+    await signOut()
+    if (signupUserId) {
+      await supabase.from('users').delete().eq('id', signupUserId)
+    }
+    
+    // Send OTP and redirect to verification
+    await sendSignupOtp(data.email)
     navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
     setAuthLoading(false)
   }
