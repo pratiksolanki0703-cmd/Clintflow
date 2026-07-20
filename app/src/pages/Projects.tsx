@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { Button, Input, Card, CardHeader, CardContent, Badge, Modal, Skeleton, Textarea, Dropdown } from '../components/ui'
-import { Plus, Search, Edit, Trash2, FolderKanban, Calendar, DollarSign, MoreVertical, ChevronDown, ExternalLink, Eye } from 'lucide-react'
+import { Button, Input, Card, Badge, Modal, Skeleton, Textarea, Dropdown, EmptyState, SearchInput } from '../components/ui'
+import { Plus, Edit, Trash2, FolderKanban, Calendar, DollarSign, MoreVertical, ExternalLink, Eye, Check, ChevronLeft, ChevronRight, Sparkles, ListChecks, WalletCards } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,6 +29,7 @@ export function Projects() {
   const [showModal, setShowModal] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all')
+  const [wizardStep, setWizardStep] = useState(1)
 
   const { data: clients } = useQuery({
     queryKey: ['clients', user?.id],
@@ -91,6 +92,7 @@ export function Projects() {
   })
 
   const handleOpenModal = (project?: any) => {
+    setWizardStep(1)
     if (project) {
       setEditingProject(project)
       reset({ name: project.name, description: project.description || '', budget: project.budget || 0, currency: project.currency || 'INR', deadline: project.deadline?.split('T')[0] || '', client_id: project.client_id })
@@ -122,17 +124,14 @@ export function Projects() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600">Track project progress and deadlines</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
+          <p className="text-gray-600 dark:text-gray-400">Track project progress and deadlines</p>
         </div>
         <Button onClick={() => handleOpenModal()} size="lg"><Plus className="w-5 h-5 mr-2" />New Project</Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-        </div>
+      <div className="flex flex-col sm:flex-row gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search projects or clients..." className="flex-1 max-w-md" />
         <select value={statusFilter} onChange={e => setStatusFilter(e.target as any).value} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-full sm:w-auto">
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -146,12 +145,7 @@ export function Projects() {
           {[...Array(8)].map((_, i) => <Card key={i} className="p-4"><Skeleton className="h-6 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2 mb-1" /><Skeleton className="h-4 w-1/3" /></Card>)}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <Card className="text-center py-12">
-          <FolderKanban className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No projects found</h3>
-          <p className="text-gray-500 mt-1">Get started by creating your first project</p>
-          <Button onClick={() => handleOpenModal()} className="mt-4"><Plus className="w-5 h-5 mr-2" />Create Project</Button>
-        </Card>
+        <EmptyState icon={FolderKanban} title="No projects yet" description="Create your first project and keep delivery, milestones, and payments organized." action={{ label: 'New project', onClick: () => handleOpenModal() }} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredProjects.map(project => (
@@ -194,18 +188,15 @@ export function Projects() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProject(null) }} title={editingProject ? 'Edit Project' : 'New Project'}>
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProject(null) }} title={editingProject ? 'Edit Project' : 'Create a new project'}>
+        {!editingProject && <div className="mb-6 grid grid-cols-4 gap-2">{['Client', 'Details', 'Plan', 'Review'].map((label, index) => { const step = index + 1; return <div key={label} className="flex items-center gap-2"><div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${wizardStep >= step ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'}`}>{wizardStep > step ? <Check className="h-4 w-4" /> : step}</div><span className={`hidden text-xs sm:block ${wizardStep >= step ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-400'}`}>{label}</span>{step < 4 && <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />}</div>})}</div>}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Project Name" placeholder="Website Redesign" {...register('name')} error={errors.name?.message} />
-          <Textarea label="Description (optional)" placeholder="Project details..." {...register('description')} rows={3} />
+          {!editingProject && wizardStep === 1 && <div className="space-y-4"><div className="rounded-lg border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-900 dark:bg-brand-950/30"><p className="text-sm font-medium text-brand-900 dark:text-brand-200">Who is this project for?</p><p className="mt-1 text-xs text-brand-700 dark:text-brand-300">Choose an existing client to keep everything connected.</p></div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Client <span className="text-red-500">*</span><select {...register('client_id')} className="input mt-1.5"><option value="">Select client</option>{clients?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>{errors.client_id && <p className="text-sm text-red-600">{errors.client_id.message}</p>}</div>}
+          {(editingProject || wizardStep === 2) && <><Input label="Project Name" placeholder="Website Redesign" {...register('name')} error={errors.name?.message} /><Textarea label="Description" placeholder="What are you delivering?" {...register('description')} rows={3} /></>}
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Client" {...register('client_id')} error={errors.client_id?.message} as="select">
-              <option value="">Select client</option>
-              {clients?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Input>
-            <Input label="Budget" type="number" min="0" step="1000" {...register('budget', { valueAsNumber: true })} error={errors.budget?.message} />
+            {(editingProject || wizardStep === 2) && <Input label="Budget" type="number" min="0" step="1000" {...register('budget', { valueAsNumber: true })} error={errors.budget?.message} />}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          {(editingProject || wizardStep === 2) && <div className="grid grid-cols-2 gap-4">
             <Input label="Currency" {...register('currency')} as="select">
               <option value="INR">INR (₹)</option>
               <option value="USD">USD ($)</option>
@@ -213,10 +204,12 @@ export function Projects() {
               <option value="GBP">GBP (£)</option>
             </Input>
             <Input label="Deadline (optional)" type="date" {...register('deadline')} error={errors.deadline?.message} />
-          </div>
+          </div>}
+          {!editingProject && wizardStep === 3 && <div className="space-y-3"><p className="text-sm text-gray-500">Choose how you want to plan delivery. You can refine milestones after creating the project.</p>{[{ icon: ListChecks, title: 'Start with a template', description: 'Use a proven milestone structure.' }, { icon: Sparkles, title: 'Generate with AI', description: 'Get an editable suggested plan.' }, { icon: WalletCards, title: 'Add manually', description: 'Create your own timeline.' }].map(({ icon: Icon, title, description }, i) => <button type="button" key={title} className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${i === 0 ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/30' : 'border-gray-200 dark:border-gray-700'}`}><Icon className="h-5 w-5 text-brand-600" /><span><span className="block text-sm font-semibold text-gray-900 dark:text-white">{title}</span><span className="mt-1 block text-xs text-gray-500">{description}</span></span></button>)}</div>}
+          {!editingProject && wizardStep === 4 && <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800"><h3 className="font-semibold text-gray-900 dark:text-white">Ready to create?</h3><p className="mt-2 text-sm text-gray-500">Review your project details, then create it. You can update milestones later.</p></div>}
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={() => { setShowModal(false); setEditingProject(null) }}>Cancel</Button>
-            <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>{editingProject ? 'Save Changes' : 'Create Project'}</Button>
+            <Button type="button" variant="secondary" onClick={() => wizardStep > 1 && !editingProject ? setWizardStep(step => step - 1) : (setShowModal(false), setEditingProject(null))}>{wizardStep > 1 && !editingProject ? <><ChevronLeft className="mr-1 h-4 w-4" />Back</> : 'Cancel'}</Button>
+            {!editingProject && wizardStep < 4 ? <Button type="button" onClick={() => setWizardStep(step => step + 1)}>Continue <ChevronRight className="ml-1 h-4 w-4" /></Button> : <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>{editingProject ? 'Save Changes' : 'Create Project'}</Button>}
           </div>
         </form>
       </Modal>

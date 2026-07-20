@@ -558,13 +558,23 @@ export function useUsernameCheck(username: string) {
     queryKey: ['usernameCheck', username],
     queryFn: async () => {
       if (!username || username.length < 3) return { available: false, message: 'Username must be at least 3 characters' }
+      
+      // Use RPC function which has SECURITY DEFINER (bypasses RLS for anonymous users)
       const { data, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .maybeSingle()
-      if (error) throw error
-      return { available: !data, message: data ? 'Username is taken' : 'Username available' }
+        .rpc('check_username_available', { p_username: username })
+      
+      if (error) {
+        // Fallback: try direct query if RPC fails (e.g. function not yet created)
+        const { data: direct, error: directError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle()
+        if (directError) throw directError
+        return { available: !direct, message: direct ? 'This username is already taken' : 'Username available' }
+      }
+      
+      return data as { available: boolean; message: string }
     },
     enabled: username.length >= 3,
   })
