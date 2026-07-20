@@ -116,9 +116,11 @@ export function VerifyEmail() {
       }
 
       if (insertError) {
-        setError('Something went wrong setting up your account. Please try signing up again.')
+        console.error('User insert error:', insertError)
+        // Show the actual error details for debugging
+        const msg = insertError.message || 'Unknown error'
+        setError(`Setup failed: ${msg}. Please try signing up again.`)
         setLoading(false)
-        // Don't clear sessionStorage — they may want to retry
         return
       }
 
