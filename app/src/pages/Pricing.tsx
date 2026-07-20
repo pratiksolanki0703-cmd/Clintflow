@@ -169,8 +169,8 @@ export function Pricing() {
           <h2 className="text-2xl font-bold text-center text-gray-950 dark:text-white mb-10">
             Compare plans
           </h2>
-          <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+            <table className="w-full text-sm min-w-[500px]">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
                   <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white">Feature</th>

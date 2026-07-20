@@ -390,14 +390,21 @@ export function Layout() {
                 )}
               </div>
 
-              {/* Profile (desktop dropdown) */}
-              <div className="relative hidden sm:block" ref={profileRef}>
+              {/* Profile — visible on all screens */}
+              <div className="relative" ref={profileRef}>
                 <button
-                  onClick={() => setProfileOpen(v => !v)}
+                  onClick={(e) => {
+                    // On mobile, navigate to /settings. On desktop, toggle dropdown.
+                    if (window.innerWidth < 640) {
+                      navigate('/settings')
+                    } else {
+                      setProfileOpen(v => !v)
+                    }
+                  }}
                   className="flex min-h-10 items-center gap-2 rounded-lg px-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <Avatar name={displayName} size="sm" />
-                  <span className="hidden max-w-24 truncate text-sm font-medium text-gray-700 md:block dark:text-gray-200">
+                  <Avatar name={displayName} size="sm" className="h-7 w-7 text-[9px]"/>
+                  <span className="hidden max-w-20 truncate text-sm font-medium text-gray-700 md:block dark:text-gray-200 lg:max-w-24">
                     {displayName}
                   </span>
                   <ChevronDown className="hidden h-4 w-4 text-gray-400 md:block" />
@@ -452,7 +459,7 @@ export function Layout() {
                 )}
               </div>
 
-              {/* Mobile header actions (notifications bell + avatar) */}
+              {/* Mobile only: notifications bell */}
               <button
                 onClick={() => setNotifPageOpen(true)}
                 className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 sm:hidden dark:hover:bg-gray-800"
@@ -462,12 +469,6 @@ export function Layout() {
                 {unreadCount > 0 && (
                   <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
                 )}
-              </button>
-              <button
-                onClick={() => navigate('/settings')}
-                className="rounded-lg p-1 sm:hidden"
-              >
-                <Avatar name={displayName} size="sm" className="h-7 w-7 text-[9px]" />
               </button>
             </div>
           </div>
