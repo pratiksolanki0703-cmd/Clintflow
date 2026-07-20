@@ -94,8 +94,9 @@ function PageFallback() {
 
 function AppRoutes() {
   return (
-    <Suspense fallback={<PageFallback />}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
       {/* ═══ Auth routes (public) ═══ */}
       <Route element={<PublicRoute><Login /></PublicRoute>} path="/login" />
       <Route element={<PublicRoute><CreateAccount /></PublicRoute>} path="/create-account" />
@@ -132,8 +133,9 @@ function AppRoutes() {
       {/* ═══ Fallback ═══ */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
-    </Suspense>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
