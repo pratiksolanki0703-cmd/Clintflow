@@ -79,7 +79,7 @@ function PasswordStrength({ password }: { password: string }) {
 
 export function CreateAccount() {
   const navigate = useNavigate()
-  const { signUp, signInWithGoogle } = useAuth()
+  const { signUp, signInWithGoogle, signOut, sendSignupOtp } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
@@ -122,9 +122,23 @@ export function CreateAccount() {
     const res = await signUp(data.email, data.password, data.username, data.businessName || undefined)
     if (res.error) {
       setError(res.error.message)
-    } else {
-      navigate('/dashboard')
+      setAuthLoading(false)
+      return
     }
+
+    // Account created! Now sign out (auto-logged-in by Supabase) and send verification OTP
+    await signOut()
+    
+    const { error: otpError } = await sendSignupOtp(data.email)
+    if (otpError) {
+      // OTP send failed but account exists — let user try to verify manually
+      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
+      setAuthLoading(false)
+      return
+    }
+
+    // Redirect to email verification page
+    navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
     setAuthLoading(false)
   }
 

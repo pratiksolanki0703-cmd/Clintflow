@@ -13,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   checkEmailExists: (email: string) => Promise<{ exists: boolean; error: Error | null }>
   sendOtp: (email: string) => Promise<{ error: Error | null; coolDown: number }>
+  sendSignupOtp: (email: string) => Promise<{ error: Error | null; coolDown: number }>
   verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>
   updatePassword: (password: string) => Promise<{ error: Error | null }>
   refreshUser: () => Promise<void>
@@ -176,6 +177,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }
 
+  const sendSignupOtp = async (email: string): Promise<{ error: Error | null; coolDown: number }> => {
+    const otpKey = `signup_otp_${email.toLowerCase()}`
+    const stored = getStoredAttempts(otpKey)
+    const elapsed = Date.now() - stored.timestamp
+    const remaining = RATE_LIMITS.OTP_COOLDOWN - Math.floor(elapsed / 1000)
+
+    if (remaining > 0) {
+      return { error: new Error(`Please wait ${remaining} seconds before requesting another OTP.`), coolDown: remaining }
+    }
+
+    // Send OTP via Supabase (shouldCreateUser: false so it doesn't create a new user)
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    })
+
+    if (error) return { error, coolDown: 0 }
+
+    // Set cooldown
+    setStoredAttempts(otpKey, 1)
+    return { error: null, coolDown: RATE_LIMITS.OTP_COOLDOWN }
+  }
+
   const checkEmailExists = async (email: string): Promise<{ exists: boolean; error: Error | null }> => {
     try {
       const { data, error } = await supabase
@@ -278,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         checkEmailExists,
         sendOtp,
+        sendSignupOtp,
         verifyOtp,
         updatePassword,
         refreshUser,

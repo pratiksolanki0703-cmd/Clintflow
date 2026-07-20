@@ -10,6 +10,7 @@ const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login }
 const CreateAccount = lazy(() => import('./pages/CreateAccount').then(m => ({ default: m.CreateAccount })))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })))
 const VerifyOtp = lazy(() => import('./pages/VerifyOtp').then(m => ({ default: m.VerifyOtp })))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })))
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
 const AuthCallback = lazy(() => import('./pages/AuthCallback').then(m => ({ default: m.AuthCallback })))
 
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route element={<PublicRoute><CreateAccount /></PublicRoute>} path="/create-account" />
       <Route element={<PublicRoute><ForgotPassword /></PublicRoute>} path="/forgot-password" />
       <Route element={<VerifyOtp />} path="/verify-otp" />
+      <Route element={<VerifyEmail />} path="/verify-email" />
       <Route element={<ResetPassword />} path="/reset-password" />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
