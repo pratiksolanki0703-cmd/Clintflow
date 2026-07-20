@@ -23,6 +23,7 @@ const navItems = [
   { name: 'Analytics', href: '/analytics', icon: Activity, disabled: true },
   { name: 'AI Tools', href: '/ai-tools', icon: Sparkles, disabled: true },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Pricing', href: '/pricing', icon: CircleDollarSign, disabled: false },
 ]
 
 const PAGE_INFO: Record<string, { title: string; description: string }> = {

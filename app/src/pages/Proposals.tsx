@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,12 +23,37 @@ type ProposalForm = z.infer<typeof proposalSchema>
 export function Proposals() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingProposal, setEditingProposal] = useState<any>(null)
   const [viewProposal, setViewProposal] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'sent' | 'accepted' | 'declined'>('all')
+  // Auto-open modal when navigating to /proposals/new?project=xxx
+  useEffect(() => {
+    const projectId = searchParams.get('project')
+    if (projectId) {
+      setEditingProposal(null)
+      reset({ project_id: projectId, service_description: '', price: 0, timeline: '', currency: 'INR' })
+      setShowModal(true)
+    }
+  }, [searchParams])
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProposalForm>({
+    resolver: zodResolver(proposalSchema),
+    defaultValues: { currency: 'INR', price: 0 },
+  })
+
+  const handleOpenModal = (proposal?: any) => {
+    if (proposal) {
+      setEditingProposal(proposal)
+      reset({ project_id: proposal.project_id, service_description: proposal.service_description, price: proposal.price, timeline: proposal.timeline || '', currency: proposal.currency })
+    } else {
+      setEditingProposal(null)
+      reset({ project_id: '', service_description: '', price: 0, timeline: '', currency: 'INR' })
+    }
+    setShowModal(true)
+  }
 
   const { data: projects } = useQuery({
     queryKey: ['projects', user?.id],
@@ -88,22 +114,6 @@ export function Proposals() {
     mutationFn: async (id: string) => { const { error } = await supabase.from('proposals').delete().eq('id', id); if (error) throw error },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] }),
   })
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProposalForm>({
-    resolver: zodResolver(proposalSchema),
-    defaultValues: { currency: 'INR', price: 0 },
-  })
-
-  const handleOpenModal = (proposal?: any) => {
-    if (proposal) {
-      setEditingProposal(proposal)
-      reset({ project_id: proposal.project_id, service_description: proposal.service_description, price: proposal.price, timeline: proposal.timeline || '', currency: proposal.currency })
-    } else {
-      setEditingProposal(null)
-      reset({ project_id: '', service_description: '', price: 0, timeline: '', currency: 'INR' })
-    }
-    setShowModal(true)
-  }
 
   const onSubmit = (data: ProposalForm) => {
     if (editingProposal) updateMutation.mutate({ id: editingProposal.id, ...data })

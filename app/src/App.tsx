@@ -22,12 +22,13 @@ const Proposals = lazy(() => import('./pages/Proposals').then(m => ({ default: m
 const Invoices = lazy(() => import('./pages/Invoices').then(m => ({ default: m.Invoices })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 const ClientPortal = lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })))
+const Pricing = lazy(() => import('./pages/Pricing').then(m => ({ default: m.Pricing })))
 
-function ProtectedRoute() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <PageSkeleton />
   if (!user) return <Navigate to="/login" replace />
-  return <Outlet />
+  return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,9 @@ function AppRoutes() {
       {/* ═══ Old auth routes — redirect to new ones ═══ */}
       <Route path="/signin" element={<Navigate to="/login" replace />} />
       <Route path="/signup" element={<Navigate to="/create-account" replace />} />
+
+      {/* ═══ Public pages ═══ */}
+      <Route path="/pricing" element={<Pricing />} />
 
       {/* ═══ Client portal (public, no auth) ═══ */}
       <Route path="/:username/:share_token" element={<ClientPortal />} />

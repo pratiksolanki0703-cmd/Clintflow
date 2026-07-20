@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,11 +25,19 @@ export function Projects() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { id } = useParams()
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all')
   const [wizardStep, setWizardStep] = useState(1)
+
+  // Auto-open modal when navigating to /projects/new
+  useEffect(() => {
+    if (id === 'new') {
+      handleOpenModal()
+    }
+  }, [id])
 
   const { data: clients } = useQuery({
     queryKey: ['clients', user?.id],
