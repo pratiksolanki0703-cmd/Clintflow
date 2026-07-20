@@ -98,11 +98,18 @@ export function VerifyEmail() {
       }
     }
 
-    // ── Create the users row ─────────────────────────────────
+    // ── Ensure users row exists (trigger may have already created it) ──
     if (userId && userName) {
-      let insertError: any = null
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const result = await supabase.from('users').insert({
+      // Check if row already exists before trying to insert
+      const { data: existingRow } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (!existingRow) {
+        // Row doesn't exist — create it
+        const { error: insertErr } = await supabase.from('users').insert({
           id: userId,
           email: email,
           username: userName,
@@ -110,21 +117,16 @@ export function VerifyEmail() {
           plan_key: 'free',
           ai_credits_remaining: 5,
         })
-        insertError = result.error
-        if (!insertError) break
-        await new Promise(r => setTimeout(r, 1000))
+
+        if (insertErr) {
+          console.error('User insert failed:', insertErr)
+          setError('Something went wrong setting up your account. Please try signing up again.')
+          setLoading(false)
+          return
+        }
       }
 
-      if (insertError) {
-        console.error('User insert error:', insertError)
-        // Show the actual error details for debugging
-        const msg = insertError.message || 'Unknown error'
-        setError(`Setup failed: ${msg}. Please try signing up again.`)
-        setLoading(false)
-        return
-      }
-
-      // Clean up on success
+      // Clean up pending data
       sessionStorage.removeItem('cf_pending_id')
       sessionStorage.removeItem('cf_pending_email')
       sessionStorage.removeItem('cf_pending_username')
