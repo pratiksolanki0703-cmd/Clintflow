@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { Button, Input, Card, CardHeader, CardContent, Badge, Skeleton, Modal, Avatar, Dropdown } from '../components/ui'
-import { Plus, Search, MoreVertical, Edit, Trash2, Users, Mail, Phone, Building2, ChevronDown } from 'lucide-react'
+import { Button, Input, Card, Skeleton, Modal, Avatar, Dropdown, EmptyState, SearchInput } from '../components/ui'
+import { Plus, MoreVertical, Edit, Trash2, Users, Mail, Phone, Building2 } from 'lucide-react'
 import { formatRelativeTime } from '../lib/utils'
 
 export function Clients() {
@@ -52,8 +52,7 @@ export function Clients() {
   })
 
   const handleOpenModal = (client?: any) => {
-    if (client) setEditingClient(client)
-    else setEditingClient(null)
+    setEditingClient(client || null)
     setShowModal(true)
   }
 
@@ -67,15 +66,14 @@ export function Clients() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-600">Manage your client relationships</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Clients</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your client relationships in one place.</p>
         </div>
         <Button onClick={() => handleOpenModal()} size="lg"><Plus className="w-5 h-5 mr-2" />Add Client</Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <Input placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex flex-col sm:flex-row gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search clients..." className="flex-1 max-w-md" />
       </div>
 
       {isLoading ? (
@@ -85,40 +83,55 @@ export function Clients() {
           ))}
         </div>
       ) : filteredClients.length === 0 ? (
-        <Card className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No clients found</h3>
-          <p className="text-gray-500 mt-1">{search ? 'Try adjusting your search' : 'Get started by adding your first client'}</p>
-          <Button onClick={() => handleOpenModal()} className="mt-4"><Plus className="w-5 h-5 mr-2" />{search ? 'Clear Search' : 'Add Client'}</Button>
-        </Card>
+        <EmptyState
+          icon={Users}
+          title={search ? 'No clients match your search' : 'No clients yet'}
+          description={search ? 'Try a different search term.' : 'Add your first client to start managing relationships.'}
+          action={search ? undefined : { label: 'Add Client', onClick: () => handleOpenModal() }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredClients.map(client => (
-            <Card key={client.id} className="p-4 hover:shadow-md transition-shadow">
+            <Card key={client.id} className="group p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar name={client.name} size="lg" />
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
-                    <p className="text-sm text-gray-500 truncate">{client.email}</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">{client.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{client.email}</p>
                   </div>
                 </div>
                 <Dropdown
-                  trigger={<Button variant="ghost" size="sm"><MoreVertical className="w-4 h-4" /></Button>}
+                  trigger={<button className="p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"><MoreVertical className="w-4 h-4" /></button>}
                   items={[
                     { label: 'Edit', onClick: () => handleOpenModal(client), icon: <Edit className="w-4 h-4" /> },
                     { label: 'Delete', onClick: () => { if (confirm('Delete this client?')) deleteMutation.mutate(client.id) }, icon: <Trash2 className="w-4 h-4" />, danger: true },
                   ]}
                 />
               </div>
-              <div className="mt-3 space-y-2 text-sm text-gray-600">
-                {client.company && <div className="flex items-center gap-2"><Building2 className="w-4 h-4" />{client.company}</div>}
-                {client.phone && <div className="flex items-center gap-2"><Phone className="w-4 h-4" />{client.phone}</div>}
-                <div className="flex items-center gap-2"><Mail className="w-4 h-4" />{client.email}</div>
-                <div className="flex items-center gap-2 text-gray-400"><span>{client.projects?.[0]?.count || 0} projects</span></div>
+              <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                {client.company && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 shrink-0 text-gray-400" />
+                    <span>{client.company}</span>
+                  </div>
+                )}
+                {client.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 shrink-0 text-gray-400" />
+                    <span>{client.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 shrink-0 text-gray-400" />
+                  <span className="truncate">{client.email}</span>
+                </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
-                <span className="text-gray-500">Added {formatRelativeTime(client.created_at)}</span>
+              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
+                <span className="text-gray-500 dark:text-gray-500">
+                  {client.projects?.[0]?.count || 0} project{(client.projects?.[0]?.count || 0) !== 1 ? 's' : ''}
+                </span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs">Added {formatRelativeTime(client.created_at)}</span>
               </div>
             </Card>
           ))}
@@ -131,7 +144,7 @@ export function Clients() {
           <Input label="Email" type="email" name="email" placeholder="john@example.com" defaultValue={editingClient?.email || ''} required />
           <Input label="Phone (optional)" name="phone" placeholder="+91 98765 43210" defaultValue={editingClient?.phone || ''} />
           <Input label="Company (optional)" name="company" placeholder="Acme Inc." defaultValue={editingClient?.company || ''} />
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
             <Button type="button" variant="secondary" onClick={() => { setShowModal(false); setEditingClient(null) }}>Cancel</Button>
             <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>{editingClient ? 'Save Changes' : 'Add Client'}</Button>
           </div>
