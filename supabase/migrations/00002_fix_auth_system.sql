@@ -185,9 +185,62 @@ END;
 $$;
 
 -- ════════════════════════════════════════════════════════════
--- 5. Grant permissions
+-- 5. Server-side rate limiting for OTP sends (signup + forgot password)
+-- Called by the frontend BEFORE calling supabase.auth.signInWithOtp()
+-- ════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.check_otp_rate_limit(p_email text, p_purpose text DEFAULT 'forgot_password')
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_recent_count integer;
+  v_latest_attempt timestamptz;
+  v_allowed boolean;
+  v_message text;
+  v_remaining_secs integer;
+BEGIN
+  -- Count OTP sends for this email in the last 15 minutes
+  SELECT COUNT(*) INTO v_recent_count
+  FROM public.password_resets
+  WHERE email = p_email
+    AND created_at > now() - interval '15 minutes';
+
+  IF v_recent_count >= 3 THEN
+    -- Find when the oldest recent attempt was made to calculate remaining lockout
+    SELECT MIN(created_at) INTO v_latest_attempt
+    FROM public.password_resets
+    WHERE email = p_email
+      AND created_at > now() - interval '15 minutes';
+
+    v_remaining_secs := EXTRACT(EPOCH FROM (v_latest_attempt + interval '15 minutes' - now()))::integer;
+    v_allowed := false;
+    v_message := 'Too many attempts. Please try again in ' || GREATEST(1, v_remaining_secs / 60)::text || ' minute(s).';
+  ELSE
+    v_allowed := true;
+    v_message := 'OK';
+  END IF;
+
+  -- Log the attempt for rate tracking (both signup & forgot-password)
+  INSERT INTO public.password_resets (email, otp, expires_at)
+  VALUES (p_email, 'rate-check-' || p_purpose, now() + interval '15 minutes');
+
+  RETURN jsonb_build_object(
+    'allowed', v_allowed,
+    'message', v_message,
+    'remaining', v_recent_count,
+    'limit', 3
+  );
+END;
+$$;
+
+-- ════════════════════════════════════════════════════════════
+-- 6. Grant permissions
 -- ════════════════════════════════════════════════════════════
 
 GRANT EXECUTE ON FUNCTION public.check_username_available(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_password_reset_otp(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_password_reset_otp(text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_otp_rate_limit(text, text) TO anon, authenticated;

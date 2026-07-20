@@ -21,12 +21,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-// Rate limiting helpers (client-side)
+// Rate limiting helpers (client-side + server-side via DB functions)
 const RATE_LIMITS = {
-  OTP_COOLDOWN: 60,      // seconds before can request another OTP
-  OTP_MAX_ATTEMPTS: 5,   // max OTP verification attempts before lockout
-  LOGIN_MAX_ATTEMPTS: 5, // max login attempts before temporary lockout
-  LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes lockout
+  OTP_COOLDOWN: 60,         // seconds before can request another OTP
+  OTP_MAX_RESENDS: 3,       // max OTP resend attempts before lockout
+  OTP_MAX_ATTEMPTS: 5,       // max OTP verification attempts before lockout
+  OTP_RESEND_LOCKOUT: 15 * 60 * 1000, // 15 min lockout after max resends
+  LOGIN_MAX_ATTEMPTS: 5,     // max login attempts before temporary lockout
+  LOCKOUT_DURATION: 15 * 60 * 1000,   // 15 minutes lockout
 }
 
 function getStoredAttempts(key: string): { count: number; timestamp: number } {
@@ -183,14 +185,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendSignupOtp = async (email: string): Promise<{ error: Error | null; coolDown: number }> => {
     const otpKey = `signup_otp_${email.toLowerCase()}`
     const stored = getStoredAttempts(otpKey)
-    const elapsed = Date.now() - stored.timestamp
-    const remaining = RATE_LIMITS.OTP_COOLDOWN - Math.floor(elapsed / 1000)
+    const now = Date.now()
+    const elapsed = now - stored.timestamp
 
-    if (remaining > 0) {
-      return { error: new Error(`Please wait ${remaining} seconds before requesting another OTP.`), coolDown: remaining }
+    // Check if locked out (exceeded max resends)
+    if (stored.count >= RATE_LIMITS.OTP_MAX_RESENDS) {
+      const remaining = RATE_LIMITS.OTP_RESEND_LOCKOUT - elapsed
+      if (remaining > 0) {
+        const mins = Math.max(1, Math.ceil(remaining / 60000))
+        return { error: new Error(`Too many attempts. Please try again in ${mins} minute(s).`), coolDown: Math.ceil(remaining / 1000) }
+      }
+      // Lockout expired — reset counter
+      clearStoredAttempts(otpKey)
     }
 
-    // Send OTP via Supabase (shouldCreateUser: false so it doesn't create a new user)
+    // Check cooldown between sends
+    const cooldownRemaining = RATE_LIMITS.OTP_COOLDOWN - Math.floor(elapsed / 1000)
+    if (cooldownRemaining > 0 && stored.count > 0) {
+      return { error: new Error(`Please wait ${cooldownRemaining} seconds before requesting another OTP.`), coolDown: cooldownRemaining }
+    }
+
+    // ═══ Server-side rate limit check ═══
+    try {
+      const { data: rateCheck } = await supabase.rpc('check_otp_rate_limit', {
+        p_email: email,
+        p_purpose: 'signup',
+      })
+      if (rateCheck && !rateCheck.allowed) {
+        return { error: new Error(rateCheck.message), coolDown: 0 }
+      }
+    } catch { /* RPC not available — fall through to client-side only */ }
+
+    // Send OTP via Supabase
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false },
@@ -198,8 +224,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error, coolDown: 0 }
 
-    // Set cooldown
-    setStoredAttempts(otpKey, 1)
+    // Increment resend count and set cooldown
+    setStoredAttempts(otpKey, stored.count + 1)
     return { error: null, coolDown: RATE_LIMITS.OTP_COOLDOWN }
   }
 
@@ -219,13 +245,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const sendOtp = async (email: string): Promise<{ error: Error | null; coolDown: number }> => {
-    const otpKey = `otp_cooldown_${email.toLowerCase()}`
+    const otpKey = `otp_resend_${email.toLowerCase()}`
     const stored = getStoredAttempts(otpKey)
-    const elapsed = Date.now() - stored.timestamp
-    const remaining = RATE_LIMITS.OTP_COOLDOWN - Math.floor(elapsed / 1000)
+    const now = Date.now()
+    const elapsed = now - stored.timestamp
 
-    if (remaining > 0) {
-      return { error: new Error(`Please wait ${remaining} seconds before requesting another OTP.`), coolDown: remaining }
+    // Check if locked out (exceeded max resends)
+    if (stored.count >= RATE_LIMITS.OTP_MAX_RESENDS) {
+      const remaining = RATE_LIMITS.OTP_RESEND_LOCKOUT - elapsed
+      if (remaining > 0) {
+        const mins = Math.max(1, Math.ceil(remaining / 60000))
+        return { error: new Error(`Too many attempts. Please try again in ${mins} minute(s).`), coolDown: Math.ceil(remaining / 1000) }
+      }
+      // Lockout expired — reset counter
+      clearStoredAttempts(otpKey)
+    }
+
+    // Check cooldown between sends
+    const cooldownRemaining = RATE_LIMITS.OTP_COOLDOWN - Math.floor(elapsed / 1000)
+    if (cooldownRemaining > 0 && stored.count > 0) {
+      return { error: new Error(`Please wait ${cooldownRemaining} seconds before requesting another OTP.`), coolDown: cooldownRemaining }
     }
 
     // Check email exists in our users table
@@ -234,7 +273,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: new Error('No account found with this email address.'), coolDown: 0 }
     }
 
-    // Use Supabase's built-in OTP (signInWithOtp)
+    // ═══ Server-side rate limit check ═══
+    try {
+      const { data: rateCheck } = await supabase.rpc('check_otp_rate_limit', {
+        p_email: email,
+        p_purpose: 'forgot_password',
+      })
+      if (rateCheck && !rateCheck.allowed) {
+        return { error: new Error(rateCheck.message), coolDown: 0 }
+      }
+    } catch { /* RPC not available — fall through */ }
+
+    // Use Supabase's built-in OTP
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false },
@@ -242,8 +292,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error, coolDown: 0 }
 
-    // Set cooldown
-    setStoredAttempts(otpKey, 1)
+    // Increment resend count and set cooldown
+    setStoredAttempts(otpKey, stored.count + 1)
     return { error: null, coolDown: RATE_LIMITS.OTP_COOLDOWN }
   }
 
