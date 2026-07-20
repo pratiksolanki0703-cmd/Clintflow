@@ -5,7 +5,7 @@ import {
   Activity, Bell, BriefcaseBusiness, ChevronDown, ChevronLeft, ChevronRight,
   CircleDollarSign, FileCheck2, FileText, FolderKanban, LayoutDashboard,
   LogOut, Menu, PanelLeft, Settings, Sparkles, User,
-  Users, X, Home, Plus, Search, ArrowLeft,
+  Users, X, Home, Plus, Search, ArrowLeft, ExternalLink, CreditCard,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
@@ -23,7 +23,7 @@ const navItems = [
   { name: 'Analytics', href: '/analytics', icon: Activity, disabled: true },
   { name: 'AI Tools', href: '/ai-tools', icon: Sparkles, disabled: true },
   { name: 'Settings', href: '/settings', icon: Settings },
-  { name: 'Pricing', href: '/pricing', icon: CircleDollarSign, disabled: false },
+  { name: 'Pricing', href: '/pricing', icon: CreditCard },
 ]
 
 const PAGE_INFO: Record<string, { title: string; description: string }> = {
@@ -33,6 +33,7 @@ const PAGE_INFO: Record<string, { title: string; description: string }> = {
   '/proposals': { title: 'Proposals', description: 'Create and share professional proposals.' },
   '/invoices': { title: 'Invoices', description: 'Keep every invoice and payment status organized.' },
   '/settings': { title: 'Settings', description: 'Manage your profile, business, and preferences.' },
+  '/pricing': { title: 'Pricing', description: 'Compare plans and upgrade.' },
 }
 
 // ─── Bottom Nav Items (mobile) ────────────────────────
@@ -42,7 +43,13 @@ const bottomNav = [
   { name: 'Search', href: '#search', icon: Search },
   { name: 'New', href: '#new', icon: Plus },
   { name: 'Alerts', href: '#alerts', icon: Bell },
-  { name: 'Profile', href: '#profile', icon: User },
+  { name: 'Profile', href: '/settings', icon: User },
+]
+
+// ─── Notification data (placeholder) ──────────────────
+
+const NOTIFICATIONS = [
+  { id: '1', title: 'Welcome to ClientFlow!', description: 'Get started by adding your first client.', time: 'Just now', read: false },
 ]
 
 // ─── Layout ───────────────────────────────────────────
@@ -59,6 +66,7 @@ export function Layout() {
   const [theme, setTheme] = useState(() => localStorage.getItem('cf-theme') || 'light')
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notifPageOpen, setNotifPageOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
 
@@ -88,8 +96,12 @@ export function Layout() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  // Close mobile search on route change
-  useEffect(() => { setMobileSearchOpen(false); setMobileMenuOpen(false) }, [location.pathname])
+  // Close mobile panels on route change
+  useEffect(() => {
+    setMobileSearchOpen(false)
+    setMobileMenuOpen(false)
+    setNotifPageOpen(false)
+  }, [location.pathname])
 
   const displayName = user?.business_name || user?.username || 'Your workspace'
   const credits = user?.ai_credits_remaining ?? 0
@@ -101,7 +113,7 @@ export function Layout() {
 
   // Quick actions for mobile bottom sheet
   const quickActions = [
-    { icon: Plus, label: 'New Project', to: '/projects/new', desc: 'Create a project for a client' },
+    { icon: Plus, label: 'New Project', to: '/projects/new', desc: 'Create a project' },
     { icon: User, label: 'Add Client', to: '/clients', desc: 'Add a new client' },
     { icon: FileText, label: 'Create Proposal', to: '/proposals', desc: 'Send a proposal' },
     { icon: CircleDollarSign, label: 'New Invoice', to: '/invoices', desc: 'Create an invoice' },
@@ -109,6 +121,8 @@ export function Layout() {
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
   const toggleSidebar = () => setCollapsed(v => !v)
+
+  const unreadCount = NOTIFICATIONS.filter(n => !n.read).length
 
   // ── Render ────────────────────────────────────────────
   return (
@@ -143,6 +157,40 @@ export function Layout() {
                 </NavLink>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Notification Full Page ── */}
+      {notifPageOpen && (
+        <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 animate-fade-in lg:hidden">
+          <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-4 dark:border-gray-800">
+            <button onClick={() => setNotifPageOpen(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
+          </div>
+          <div className="p-4">
+            {NOTIFICATIONS.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <Bell className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" />
+                <p className="text-sm font-medium text-gray-900 dark:text-white">No notifications</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">New activity will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {NOTIFICATIONS.map(notif => (
+                  <div key={notif.id} className={`rounded-xl p-4 ${notif.read ? '' : 'bg-brand-50/50 dark:bg-brand-950/20'}`}>
+                    <div className="flex items-start justify-between">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{notif.title}</p>
+                      {!notif.read && <span className="h-2 w-2 rounded-full bg-brand-500" />}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{notif.description}</p>
+                    <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">{notif.time}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -197,7 +245,6 @@ export function Layout() {
 
         {/* Sidebar bottom */}
         <div className="border-t border-[var(--color-border)] p-3">
-          {/* Collapse toggle (desktop) */}
           <button
             onClick={toggleSidebar}
             className="hidden min-h-11 w-full items-center justify-center gap-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 lg:flex dark:hover:bg-gray-800"
@@ -205,8 +252,6 @@ export function Layout() {
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <><ChevronLeft className="h-4 w-4" /> Collapse</>}
           </button>
-
-          {/* User card (not collapsed) */}
           {!collapsed && (
             <div className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5">
               <Avatar name={displayName} size="sm" />
@@ -231,7 +276,6 @@ export function Layout() {
         {/* ── Header ── */}
         <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm">
           <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-3 px-4 sm:px-6">
-            {/* Mobile: hamburger */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden dark:hover:bg-gray-800"
@@ -239,7 +283,6 @@ export function Layout() {
               <Menu className="h-5 w-5" />
             </button>
 
-            {/* Back button (sub-pages) */}
             {isSubPage && (
               <button
                 onClick={() => navigate(-1)}
@@ -250,7 +293,6 @@ export function Layout() {
               </button>
             )}
 
-            {/* Page title */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 {isSubPage && (
@@ -290,7 +332,7 @@ export function Layout() {
 
             {/* Right actions */}
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* AI Credits */}
+              {/* AI Credits badge */}
               <div className={cn(
                 'hidden items-center gap-2 rounded-lg border px-3 py-1.5 sm:flex',
                 credits === 0 ? 'border-red-200 bg-red-50 text-red-700' :
@@ -301,33 +343,55 @@ export function Layout() {
                 <span className="text-xs font-medium">{credits}/{creditTotal}</span>
               </div>
 
-              {/* Notifications */}
-              <div className="relative" ref={notifRef}>
+              {/* Notifications (desktop dropdown) */}
+              <div className="relative hidden sm:block" ref={notifRef}>
                 <button
                   onClick={() => setNotificationsOpen(v => !v)}
                   className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[var(--color-surface)]">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-12 z-50 w-[min(380px,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                    <div className="flex items-center justify-between">
+                  <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                       <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                      <button className="text-xs font-medium text-brand-600 hover:text-brand-500">Mark all read</button>
+                      {unreadCount > 0 && (
+                        <button className="text-xs font-medium text-brand-600 hover:text-brand-500">Mark all read</button>
+                      )}
                     </div>
-                    <div className="mt-4 rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                      <Bell className="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
-                      <p>No notifications yet</p>
-                      <p className="text-xs mt-1">New activity will appear here.</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      {NOTIFICATIONS.length === 0 ? (
+                        <div className="flex flex-col items-center py-8 text-center px-4">
+                          <Bell className="mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {NOTIFICATIONS.map(notif => (
+                            <div key={notif.id} className={`px-4 py-3 ${notif.read ? '' : 'bg-brand-50/30 dark:bg-brand-950/10'}`}>
+                              <div className="flex items-start justify-between">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{notif.title}</p>
+                                {!notif.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />}
+                              </div>
+                              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{notif.description}</p>
+                              <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">{notif.time}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Profile */}
-              <div className="relative" ref={profileRef}>
+              {/* Profile (desktop dropdown) */}
+              <div className="relative hidden sm:block" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(v => !v)}
                   className="flex min-h-10 items-center gap-2 rounded-lg px-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -348,9 +412,15 @@ export function Layout() {
                           <p className="truncate text-xs text-gray-500">{user?.email}</p>
                         </div>
                       </div>
-                      <span className="mt-2 inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
-                        Free plan
-                      </span>
+                      <div className="mt-2.5 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-3.5 w-3.5 text-brand-600" />
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{credits} credits</span>
+                        </div>
+                        <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
+                          Free
+                        </span>
+                      </div>
                     </div>
                     <NavLink
                       to="/settings"
@@ -358,6 +428,13 @@ export function Layout() {
                       className="mt-2 flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                     >
                       <User className="h-4 w-4" /> Profile & settings
+                    </NavLink>
+                    <NavLink
+                      to="/pricing"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      <CreditCard className="h-4 w-4" /> Pricing & plans
                     </NavLink>
                     <button
                       onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setProfileOpen(false) }}
@@ -374,6 +451,24 @@ export function Layout() {
                   </div>
                 )}
               </div>
+
+              {/* Mobile header actions (notifications bell + avatar) */}
+              <button
+                onClick={() => setNotifPageOpen(true)}
+                className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 sm:hidden dark:hover:bg-gray-800"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
+                )}
+              </button>
+              <button
+                onClick={() => navigate('/settings')}
+                className="rounded-lg p-1 sm:hidden"
+              >
+                <Avatar name={displayName} size="sm" className="h-7 w-7 text-[9px]" />
+              </button>
             </div>
           </div>
         </header>
@@ -384,7 +479,7 @@ export function Layout() {
         </main>
       </div>
 
-      {/* ── Mobile Bottom Navigation (Telegram-style) ── */}
+      {/* ── Mobile Bottom Navigation ── */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-lg lg:hidden">
         <div className="flex h-16 items-center justify-around px-2">
           {bottomNav.map(item => {
@@ -393,7 +488,7 @@ export function Layout() {
                 <button
                   key={item.name}
                   onClick={() => setMobileSearchOpen(true)}
-                  className="flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-gray-500"
+                  className="flex h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-gray-500"
                 >
                   <Search className="h-5 w-5" />
                   {item.name}
@@ -405,9 +500,9 @@ export function Layout() {
                 <button
                   key={item.name}
                   onClick={() => setMobileMenuOpen(true)}
-                  className="relative -mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+                  className="relative -mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
                 >
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5" />
                 </button>
               )
             }
@@ -415,33 +510,29 @@ export function Layout() {
               return (
                 <button
                   key={item.name}
-                  onClick={() => setNotificationsOpen(v => !v)}
-                  className="relative flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-gray-500"
+                  onClick={() => setNotifPageOpen(true)}
+                  className="relative flex h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-gray-500"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute right-3 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute right-2.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
+                  )}
                   {item.name}
                 </button>
               )
             }
-            if (item.href === '#profile') {
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => setProfileOpen(v => !v)}
-                  className="flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-gray-500"
-                >
-                  <Avatar name={displayName} size="sm" className="h-5 w-5 text-[8px]" />
-                  {item.name}
-                </button>
-              )
-            }
+            // Profile & other items use NavLink
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
+                onClick={() => {
+                  // Close any open panels
+                  setNotificationsOpen(false)
+                  setProfileOpen(false)
+                }}
                 className={({ isActive }) =>
-                  `flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] ${
+                  `flex h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] ${
                     isActive ? 'text-brand-600' : 'text-gray-500'
                   }`
                 }
@@ -453,41 +544,6 @@ export function Layout() {
           })}
         </div>
       </nav>
-
-      {/* ── Mobile Search Overlay ── */}
-      {mobileSearchOpen && (
-        <div className="fixed inset-0 z-50 bg-white p-4 dark:bg-gray-900 lg:hidden animate-fade-in">
-          <div className="flex items-center gap-3">
-            <button onClick={() => { setMobileSearchOpen(false); setSearch('') }} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <input
-              autoFocus
-              type="text"
-              aria-label="Search pages"
-              placeholder="Search pages..."
-              className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="mt-6 space-y-1">
-            {navItems.filter(i => !i.disabled && i.name.toLowerCase().includes(search.toLowerCase())).map(item => (
-              <button
-                key={item.name}
-                onClick={() => { navigate(item.href); setSearch(''); setMobileSearchOpen(false) }}
-                className="flex min-h-12 w-full items-center gap-3 rounded-lg px-4 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <item.icon className="h-5 w-5 text-gray-400" />
-                {item.name}
-              </button>
-            ))}
-            {search && navItems.filter(i => !i.disabled && i.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-              <p className="px-4 text-sm text-gray-400">No results for "{search}"</p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

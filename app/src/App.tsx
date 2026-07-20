@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, Component, type ReactNode } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -50,9 +50,52 @@ function PageSkeleton() {
   )
 }
 
+// Error boundary to catch rendering crashes
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/30">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Something went wrong</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Please try refreshing the page.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+            >
+              Refresh page
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        <p className="text-sm text-gray-500">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
 function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
       {/* ═══ Auth routes (public) ═══ */}
       <Route element={<PublicRoute><Login /></PublicRoute>} path="/login" />
       <Route element={<PublicRoute><CreateAccount /></PublicRoute>} path="/create-account" />
@@ -90,6 +133,7 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 

@@ -1,10 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui'
-import { Check, Sparkles, ArrowLeft, Shield, Zap, Users, FolderKanban, Mail, Palette, CreditCard } from 'lucide-react'
-import { formatCurrency } from '../lib/utils'
+import { Check, Sparkles } from 'lucide-react'
 
 const PLANS = [
   {
@@ -12,12 +9,6 @@ const PLANS = [
     display_name: 'Free',
     price_monthly: 0,
     price_yearly: 0,
-    max_clients: 5,
-    max_projects_per_month: 3,
-    ai_credits_per_month: 5,
-    emails_per_month: 50,
-    has_custom_branding: false,
-    shows_powered_by_footer: true,
     popular: false,
     features: [
       'Up to 5 clients',
@@ -33,12 +24,6 @@ const PLANS = [
     display_name: 'Professional',
     price_monthly: 999,
     price_yearly: 9990,
-    max_clients: 50,
-    max_projects_per_month: null,
-    ai_credits_per_month: 100,
-    emails_per_month: 1000,
-    has_custom_branding: true,
-    shows_powered_by_footer: false,
     popular: true,
     features: [
       'Up to 50 clients',
@@ -56,12 +41,6 @@ const PLANS = [
     display_name: 'Agency',
     price_monthly: 2499,
     price_yearly: 24990,
-    max_clients: null,
-    max_projects_per_month: null,
-    ai_credits_per_month: 500,
-    emails_per_month: 5000,
-    has_custom_branding: true,
-    shows_powered_by_footer: false,
     popular: false,
     features: [
       'Unlimited clients',
@@ -78,22 +57,10 @@ const PLANS = [
   },
 ]
 
-function PricingPage() {
+export function Pricing() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const isLoggedIn = !!user
-
-  const { data: subscriptionPlans } = useQuery({
-    queryKey: ['pricingPlans'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('subscription_plans').select('*').eq('is_active', true).order('price_monthly')
-      if (error) throw error
-      return data
-    },
-  })
-
-  const planToShow = subscriptionPlans && subscriptionPlans.length > 0
-    ? subscriptionPlans
-    : PLANS
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -106,9 +73,7 @@ function PricingPage() {
           </Link>
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
-              <Link to="/settings?tab=billing">
-                <Button variant="secondary" size="sm">My Plan</Button>
-              </Link>
+              <Link to="/settings"><Button variant="secondary" size="sm">My Plan</Button></Link>
             ) : (
               <>
                 <Link to="/login"><Button variant="secondary" size="sm">Sign In</Button></Link>
@@ -135,12 +100,12 @@ function PricingPage() {
 
         {/* Pricing cards */}
         <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
-          {planToShow.map((plan, index) => (
+          {PLANS.map((plan, index) => (
             <div
               key={plan.plan_key}
               className={`relative flex flex-col rounded-2xl border bg-[var(--color-surface)] p-6 shadow-sm transition-all hover:shadow-md sm:p-8 ${
                 plan.popular
-                  ? 'border-brand-500 ring-2 ring-brand-500/20 scale-[1.02] lg:scale-105'
+                  ? 'border-brand-500 ring-2 ring-brand-500/20 lg:scale-105'
                   : 'border-[var(--color-border)]'
               }`}
               style={{ animationDelay: `${index * 100}ms` }}
@@ -177,9 +142,9 @@ function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                to={isLoggedIn ? `/settings?tab=billing` : '/create-account'}
-                className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all ${
+              <button
+                onClick={() => navigate(isLoggedIn ? '/settings' : '/create-account')}
+                className={`w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all ${
                   plan.popular
                     ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
                     : 'border border-[var(--color-border)] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800'
@@ -194,22 +159,22 @@ function PricingPage() {
                   : plan.price_monthly === 0
                     ? 'Get Started Free'
                     : 'Start Free Trial'}
-              </Link>
+              </button>
             </div>
           ))}
         </div>
 
-        {/* Feature comparison */}
+        {/* Feature comparison table */}
         <div className="mt-24">
           <h2 className="text-2xl font-bold text-center text-gray-950 dark:text-white mb-10">
-            Compare plans in detail
+            Compare plans
           </h2>
           <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
                   <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white">Feature</th>
-                  {planToShow.map(plan => (
+                  {PLANS.map(plan => (
                     <th key={plan.plan_key} className={`px-6 py-4 text-center font-semibold ${plan.popular ? 'text-brand-600' : 'text-gray-900 dark:text-white'}`}>
                       {plan.display_name}
                     </th>
@@ -218,18 +183,20 @@ function PricingPage() {
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
                 {[
-                  { label: 'Clients', key: 'max_clients', format: (v: number | null) => v ? `Up to ${v}` : 'Unlimited' },
-                  { label: 'Projects', key: 'max_projects_per_month', format: (v: number | null) => v ? `${v}/month` : 'Unlimited' },
-                  { label: 'AI Credits', key: 'ai_credits_per_month', format: (v: number) => `${v}/month` },
-                  { label: 'Emails', key: 'emails_per_month', format: (v: number) => `${v}/month` },
-                  { label: 'Custom Branding', key: 'has_custom_branding', format: (v: boolean) => v ? '✅' : '—' },
-                  { label: 'No Footer Branding', key: 'shows_powered_by_footer', format: (v: boolean) => v ? '—' : '✅' },
+                  { label: 'Clients', free: '5', pro: '50', agency: 'Unlimited' },
+                  { label: 'Projects', free: '3/month', pro: 'Unlimited', agency: 'Unlimited' },
+                  { label: 'AI Credits', free: '5/month', pro: '100/month', agency: '500/month' },
+                  { label: 'Emails', free: '50/month', pro: '1,000/month', agency: '5,000/month' },
+                  { label: 'Custom Branding', free: '—', pro: '✅', agency: '✅' },
+                  { label: 'No Footer Branding', free: '—', pro: '✅', agency: '✅' },
+                  { label: 'Priority Support', free: '—', pro: '✅', agency: '✅' },
+                  { label: 'Team Access', free: '—', pro: '—', agency: '✅' },
                 ].map(row => (
                   <tr key={row.label}>
                     <td className="px-6 py-4 font-medium text-gray-700 dark:text-gray-300">{row.label}</td>
-                    {planToShow.map(plan => (
-                      <td key={plan.plan_key} className="px-6 py-4 text-center text-gray-600 dark:text-gray-400">
-                        {row.format((plan as any)[row.key])}
+                    {['free', 'professional', 'agency'].map(key => (
+                      <td key={key} className="px-6 py-4 text-center text-gray-600 dark:text-gray-400">
+                        {(row as any)[key]}
                       </td>
                     ))}
                   </tr>
@@ -264,23 +231,15 @@ function PricingPage() {
           <div className="mx-auto max-w-xl rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-700 px-8 py-12 shadow-xl">
             <h2 className="text-2xl font-bold text-white">Ready to grow your freelance business?</h2>
             <p className="mt-3 text-brand-100 text-sm">Join thousands of freelancers using ClientFlow.</p>
-            <Link to={isLoggedIn ? '/dashboard' : '/create-account'}>
-              <Button className="mt-6 rounded-xl bg-white px-8 py-3 text-sm font-semibold text-brand-700 shadow-sm hover:bg-brand-50 transition-all">
-                {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
-              </Button>
-            </Link>
+            <button
+              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/create-account')}
+              className="mt-6 rounded-xl bg-white px-8 py-3 text-sm font-semibold text-brand-700 shadow-sm hover:bg-brand-50 transition-all"
+            >
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
+            </button>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-16 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>© 2026 ClientFlow. All rights reserved.</p>
-        </footer>
       </main>
     </div>
   )
-}
-
-export function Pricing() {
-  return <PricingPage />
 }
