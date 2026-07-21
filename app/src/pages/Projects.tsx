@@ -179,7 +179,7 @@ export function Projects() {
                 {project.deadline && <div className="flex items-center gap-1"><Calendar className="w-4 h-4" />Due {formatDate(project.deadline)}</div>}
                 <div className="flex items-center gap-1">
                   <Badge variant={statusColors[project.status] || 'default'} className="text-xs">{project.status}</Badge>
-                  {project._count?.milestones > 0 && <Badge variant="default" className="text-xs">{project._count.milestones} milestones</Badge>}
+                  {project.milestones?.[0]?.count > 0 && <Badge variant="default" className="text-xs">{project.milestones[0].count} milestones</Badge>}
                 </div>
               </div>
 
